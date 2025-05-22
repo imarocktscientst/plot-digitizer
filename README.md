@@ -34,7 +34,7 @@ A Python application for extracting tabular data from plot images. This tool ena
 
 1. Clone this repository:
    ```
-   git clone https://github.com/yourusername/plot-digitizer.git
+   git clone https://github.com/imarocktscientst/plot-digitizer.git
    cd plot-digitizer
    ```
 
