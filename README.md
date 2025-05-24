@@ -1,4 +1,4 @@
-# plot_digitizer
+# plot-digitizer
 
 A Python application for extracting tabular data from plot images. This tool enables users to digitize data from images of graphs by tracing curves with NURBS curves and exporting the sampled data as CSV files.
 
@@ -34,8 +34,8 @@ A Python application for extracting tabular data from plot images. This tool ena
 
 1. Clone this repository:
    ```
-   git clone https://github.com/imarocktscientst/plot_digitizer.git
-   cd plot_digitizer
+   git clone https://github.com/imarocktscientst/plot-digitizer.git
+   cd plot-digitizer
    ```
 
 2. Create a virtual environment (recommended):
