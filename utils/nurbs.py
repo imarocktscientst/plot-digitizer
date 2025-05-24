@@ -176,35 +176,116 @@ class NurbsCurve:
                     knot.tangent_angle = np.arctan2(dy, dx)
                     knot.tangent_magnitude = mag
     
-    def update_curve(self):
-        """Update the B-spline representation based on the current knots"""
-        n = len(self.knots)
-        if n < 2:
-            self.bspline = None
-            self._update_needed = False
-            return
-        
-        # Calculate auto tangents where needed
-        self._calculate_auto_tangents()
-        
-        # Extract points, tangents, and weights for interpolation
-        points = np.array([(knot.x, knot.y) for knot in self.knots])
-        
-        # Create parameter values (cumulative chord length)
-        t = np.zeros(n)
-        for i in range(1, n):
-            dx = points[i, 0] - points[i-1, 0]
-            dy = points[i, 1] - points[i-1, 1]
-            t[i] = t[i-1] + np.sqrt(dx**2 + dy**2)
-        
-        if t[-1] > 0:
-            t /= t[-1]  # Normalize to [0, 1]
-        
-        # Use scipy's splprep for fitting a B-spline
-        self.bspline, _ = interpolate.splprep([points[:, 0], points[:, 1]], 
-                                             u=t, s=0, k=min(3, n-1))
-        
-        self._update_needed = False
+    def update_curve(self, num_points=100):
+            """
+            Update the B-spline curve representation
+            
+            Args:
+                num_points: Number of points to generate for the curve
+            """
+            if len(self.knots) < 2:
+                self.curve_points = np.array([])
+                return
+            
+            # Get control points
+            control_points = np.array([[knot.x, knot.y] for knot in self.knots])
+            
+            if len(self.knots) == 2:
+                # For 2 points, create a straight line
+                t = np.linspace(0, 1, num_points)
+                self.curve_points = np.array([
+                    control_points[0] + t_val * (control_points[1] - control_points[0])
+                    for t_val in t
+                ])
+                return
+            
+            # Handle manual tangents and tensions
+            derivatives = []
+            
+            for i, knot in enumerate(self.knots):
+                if knot.tangent_angle is not None:
+                    # Manual tangent specified
+                    dx = knot.tangent_magnitude * np.cos(knot.tangent_angle)
+                    dy = knot.tangent_magnitude * np.sin(knot.tangent_angle)
+                    derivatives.append([dx, dy])
+                else:
+                    # Auto tangent - calculate based on neighboring points and tension
+                    if i == 0:
+                        # First point - use direction to next point, modified by tension
+                        direction = control_points[1] - control_points[0]
+                        magnitude = np.linalg.norm(direction) * (1.0 - knot.tension)
+                        if magnitude > 0:
+                            direction = direction / np.linalg.norm(direction) * magnitude
+                        derivatives.append(direction)
+                    elif i == len(self.knots) - 1:
+                        # Last point - use direction from previous point, modified by tension
+                        direction = control_points[i] - control_points[i-1]
+                        magnitude = np.linalg.norm(direction) * (1.0 - knot.tension)
+                        if magnitude > 0:
+                            direction = direction / np.linalg.norm(direction) * magnitude
+                        derivatives.append(direction)
+                    else:
+                        # Middle point - use average direction, modified by tension
+                        prev_dir = control_points[i] - control_points[i-1]
+                        next_dir = control_points[i+1] - control_points[i]
+                        
+                        # Normalize directions
+                        if np.linalg.norm(prev_dir) > 0:
+                            prev_dir = prev_dir / np.linalg.norm(prev_dir)
+                        if np.linalg.norm(next_dir) > 0:
+                            next_dir = next_dir / np.linalg.norm(next_dir)
+                        
+                        # Average direction
+                        avg_direction = (prev_dir + next_dir) / 2
+                        
+                        # Scale by distance and tension
+                        scale = (np.linalg.norm(control_points[i+1] - control_points[i-1]) / 2) * (1.0 - knot.tension)
+                        
+                        if np.linalg.norm(avg_direction) > 0:
+                            derivatives.append(avg_direction / np.linalg.norm(avg_direction) * scale)
+                        else:
+                            derivatives.append([0, 0])
+            
+            derivatives = np.array(derivatives)
+            
+            try:
+                # Create parameter values
+                t_knots = np.linspace(0, 1, len(control_points))
+                
+                # Use scipy's parametric spline with derivatives
+                from scipy.interpolate import CubicHermiteSpline
+                
+                # Create cubic Hermite spline with position and derivative constraints
+                cs_x = CubicHermiteSpline(t_knots, control_points[:, 0], derivatives[:, 0])
+                cs_y = CubicHermiteSpline(t_knots, control_points[:, 1], derivatives[:, 1])
+                
+                # Generate curve points
+                t = np.linspace(0, 1, num_points)
+                x_curve = cs_x(t)
+                y_curve = cs_y(t)
+                
+                self.curve_points = np.column_stack([x_curve, y_curve])
+                
+            except Exception as e:
+                print(f"Error creating Hermite spline: {e}")
+                # Fallback to simple interpolation
+                try:
+                    # Use scipy's splprep as fallback
+                    tck, u = splprep([control_points[:, 0], control_points[:, 1]], s=0, k=min(3, len(control_points)-1))
+                    
+                    # Generate curve points
+                    u_new = np.linspace(0, 1, num_points)
+                    curve_points = splev(u_new, tck)
+                    
+                    self.curve_points = np.column_stack([curve_points[0], curve_points[1]])
+                except Exception as e2:
+                    print(f"Error creating fallback spline: {e2}")
+                    # Final fallback - linear interpolation
+                    t = np.linspace(0, 1, num_points)
+                    self.curve_points = np.array([
+                        np.interp(t, np.linspace(0, 1, len(control_points)), control_points[:, 0]),
+                        np.interp(t, np.linspace(0, 1, len(control_points)), control_points[:, 1])
+                    ]).T
     
     def evaluate(self, t):
         """
