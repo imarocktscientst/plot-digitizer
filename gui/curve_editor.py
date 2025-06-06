@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Curve editor widget for Plot Digitizer
+Enhanced curve editor widget with independent handles option
 """
 
 import numpy as np
@@ -101,41 +101,106 @@ class CurveEditor(QWidget):
         
         tangent_layout.addWidget(self.manual_tangent)
         
-        # Tangent angle
-        angle_layout = QHBoxLayout()
+        # Independent handles
+        independent_layout = QHBoxLayout()
         
-        self.tangent_angle = QDoubleSpinBox()
-        self.tangent_angle.setRange(-360, 360)
-        self.tangent_angle.setDecimals(1)
-        self.tangent_angle.setSingleStep(15)
-        self.tangent_angle.setValue(0)
-        self.tangent_angle.setEnabled(False)
-        self.tangent_angle.valueChanged.connect(self.on_tangent_angle_changed)
+        self.independent_handles = QCheckBox("Independent Handles")
+        self.independent_handles.setToolTip("Allow in and out handles to have different angles")
+        self.independent_handles.stateChanged.connect(self.on_independent_handles_changed)
+        self.independent_handles.setEnabled(False)  # Only enabled when manual tangent is on
         
-        angle_layout.addWidget(QLabel("Angle:"))
-        angle_layout.addWidget(self.tangent_angle)
-        angle_layout.addWidget(QLabel("°"))
+        independent_layout.addWidget(self.independent_handles)
         
-        # Tangent magnitude
-        magnitude_layout = QHBoxLayout()
+        # Tangent angle (out handle)
+        angle_out_layout = QHBoxLayout()
         
-        self.tangent_magnitude = QDoubleSpinBox()
-        self.tangent_magnitude.setRange(0.1, 10)
-        self.tangent_magnitude.setDecimals(1)
-        self.tangent_magnitude.setSingleStep(0.1)
-        self.tangent_magnitude.setValue(1.0)
-        self.tangent_magnitude.setEnabled(False)
-        self.tangent_magnitude.valueChanged.connect(self.on_tangent_magnitude_changed)
+        out_label = QLabel("Out Angle:")
+        out_label.setStyleSheet("QLabel { color: rgb(100, 200, 255); }")  # Blue to match handle color
         
-        magnitude_layout.addWidget(QLabel("Magnitude:"))
-        magnitude_layout.addWidget(self.tangent_magnitude)
+        self.tangent_angle_out = QDoubleSpinBox()
+        self.tangent_angle_out.setRange(-360, 360)
+        self.tangent_angle_out.setDecimals(1)
+        self.tangent_angle_out.setSingleStep(1)
+        self.tangent_angle_out.setValue(0)
+        self.tangent_angle_out.setEnabled(False)
+        self.tangent_angle_out.valueChanged.connect(self.on_tangent_angle_out_changed)
+        
+        angle_out_layout.addWidget(out_label)
+        angle_out_layout.addWidget(self.tangent_angle_out)
+        angle_out_layout.addWidget(QLabel("°"))
+        
+        # Tangent angle (in handle) - only shown when independent handles is checked
+        angle_in_layout = QHBoxLayout()
+        
+        self.tangent_angle_in_label = QLabel("In Angle:")
+        self.tangent_angle_in_label.setStyleSheet("QLabel { color: rgb(255, 100, 100); }")  # Red to match handle color
+        self.tangent_angle_in = QDoubleSpinBox()
+        self.tangent_angle_in.setRange(-360, 360)
+        self.tangent_angle_in.setDecimals(1)
+        self.tangent_angle_in.setSingleStep(1)
+        self.tangent_angle_in.setValue(0)
+        self.tangent_angle_in.setEnabled(False)
+        self.tangent_angle_in.valueChanged.connect(self.on_tangent_angle_in_changed)
+        self.tangent_angle_in_deg_label = QLabel("°")
+        
+        angle_in_layout.addWidget(self.tangent_angle_in_label)
+        angle_in_layout.addWidget(self.tangent_angle_in)
+        angle_in_layout.addWidget(self.tangent_angle_in_deg_label)
+        
+        # Initially hide in angle controls
+        self.tangent_angle_in_label.setVisible(False)
+        self.tangent_angle_in.setVisible(False)
+        self.tangent_angle_in_deg_label.setVisible(False)
+        
+        # Tangent magnitude (out)
+        magnitude_out_layout = QHBoxLayout()
+        
+        out_length_label = QLabel("Out Length:")
+        out_length_label.setStyleSheet("QLabel { color: rgb(100, 200, 255); }")  # Blue to match handle color
+        
+        self.tangent_magnitude_out = QDoubleSpinBox()
+        self.tangent_magnitude_out.setRange(0.1, 1000)
+        self.tangent_magnitude_out.setDecimals(1)
+        self.tangent_magnitude_out.setSingleStep(5)
+        self.tangent_magnitude_out.setValue(50.0)
+        self.tangent_magnitude_out.setEnabled(False)
+        self.tangent_magnitude_out.valueChanged.connect(self.on_tangent_magnitude_out_changed)
+        
+        magnitude_out_layout.addWidget(out_length_label)
+        magnitude_out_layout.addWidget(self.tangent_magnitude_out)
+        
+        # Tangent magnitude (in)
+        magnitude_in_layout = QHBoxLayout()
+        
+        in_length_label = QLabel("In Length:")
+        in_length_label.setStyleSheet("QLabel { color: rgb(255, 100, 100); }")  # Red to match handle color
+        
+        self.tangent_magnitude_in = QDoubleSpinBox()
+        self.tangent_magnitude_in.setRange(0.1, 1000)
+        self.tangent_magnitude_in.setDecimals(1)
+        self.tangent_magnitude_in.setSingleStep(5)
+        self.tangent_magnitude_in.setValue(50.0)
+        self.tangent_magnitude_in.setEnabled(False)
+        self.tangent_magnitude_in.valueChanged.connect(self.on_tangent_magnitude_in_changed)
+        
+        magnitude_in_layout.addWidget(in_length_label)
+        magnitude_in_layout.addWidget(self.tangent_magnitude_in)
+        
+        # Add a note about handle colors
+        color_note = QLabel("Handle Colors: Blue = Out (→), Red = In (←)")
+        color_note.setStyleSheet("QLabel { font-size: 10px; color: #666; margin-top: 5px; }")
+        color_note.setWordWrap(True)
         
         # Add fields to form layout
         prop_layout.addRow("Position:", pos_layout)
         prop_layout.addRow("Tension:", tension_layout)
         prop_layout.addRow(tangent_layout)
-        prop_layout.addRow(angle_layout)
-        prop_layout.addRow(magnitude_layout)
+        prop_layout.addRow(independent_layout)
+        prop_layout.addRow(angle_out_layout)
+        prop_layout.addRow(angle_in_layout)
+        prop_layout.addRow(magnitude_out_layout)
+        prop_layout.addRow(magnitude_in_layout)
+        prop_layout.addRow(color_note)
         
         # Add groups to main layout
         layout.addWidget(knot_group)
@@ -221,8 +286,11 @@ class CurveEditor(QWidget):
         self.y_pos.blockSignals(True)
         self.tension.blockSignals(True)
         self.manual_tangent.blockSignals(True)
-        self.tangent_angle.blockSignals(True)
-        self.tangent_magnitude.blockSignals(True)
+        self.independent_handles.blockSignals(True)
+        self.tangent_angle_out.blockSignals(True)
+        self.tangent_angle_in.blockSignals(True)
+        self.tangent_magnitude_out.blockSignals(True)
+        self.tangent_magnitude_in.blockSignals(True)
         
         # Update UI values
         self.x_pos.setValue(knot.x)
@@ -232,22 +300,52 @@ class CurveEditor(QWidget):
         
         has_manual_tangent = knot.tangent_angle is not None
         self.manual_tangent.setChecked(has_manual_tangent)
-        self.tangent_angle.setEnabled(has_manual_tangent)
-        self.tangent_magnitude.setEnabled(has_manual_tangent)
+        self.independent_handles.setEnabled(has_manual_tangent)
+        self.tangent_angle_out.setEnabled(has_manual_tangent)
+        self.tangent_magnitude_out.setEnabled(has_manual_tangent)
+        self.tangent_magnitude_in.setEnabled(has_manual_tangent)
         
         if has_manual_tangent:
+            # Set independent handles checkbox
+            self.independent_handles.setChecked(knot.independent_handles)
+            
             # Convert from radians to degrees
-            angle_deg = np.degrees(knot.tangent_angle)
-            self.tangent_angle.setValue(angle_deg)
-            self.tangent_magnitude.setValue(knot.tangent_magnitude)
+            angle_out_deg = np.degrees(knot.tangent_angle)
+            self.tangent_angle_out.setValue(angle_out_deg)
+            self.tangent_magnitude_out.setValue(knot.tangent_magnitude_out)
+            self.tangent_magnitude_in.setValue(knot.tangent_magnitude_in)
+            
+            # Handle in angle controls
+            if knot.independent_handles:
+                self.tangent_angle_in_label.setVisible(True)
+                self.tangent_angle_in.setVisible(True)
+                self.tangent_angle_in_deg_label.setVisible(True)
+                self.tangent_angle_in.setEnabled(True)
+                
+                if knot.tangent_angle_in is not None:
+                    # Display the angle from knot to in handle
+                    angle_in_deg = np.degrees(knot.tangent_angle_in)
+                    self.tangent_angle_in.setValue(angle_in_deg)
+            else:
+                self.tangent_angle_in_label.setVisible(False)
+                self.tangent_angle_in.setVisible(False)
+                self.tangent_angle_in_deg_label.setVisible(False)
+        else:
+            self.independent_handles.setChecked(False)
+            self.tangent_angle_in_label.setVisible(False)
+            self.tangent_angle_in.setVisible(False)
+            self.tangent_angle_in_deg_label.setVisible(False)
         
         # Unblock signals
         self.x_pos.blockSignals(False)
         self.y_pos.blockSignals(False)
         self.tension.blockSignals(False)
         self.manual_tangent.blockSignals(False)
-        self.tangent_angle.blockSignals(False)
-        self.tangent_magnitude.blockSignals(False)
+        self.independent_handles.blockSignals(False)
+        self.tangent_angle_out.blockSignals(False)
+        self.tangent_angle_in.blockSignals(False)
+        self.tangent_magnitude_out.blockSignals(False)
+        self.tangent_magnitude_in.blockSignals(False)
         
         # Enable/disable remove button
         self.remove_knot_btn.setEnabled(self.knot_list.count() > 2)
@@ -262,8 +360,7 @@ class CurveEditor(QWidget):
         
         # Update the curve display in the image view
         if hasattr(self.parent, 'image_view'):
-            if self.parent.image_view.mode == "edit_curve":
-                self.parent.image_view.update_curve_path(self.curve)
+            self.parent.image_view.update_curve_path(self.curve)
     
     def on_knot_selected(self, row):
         """
@@ -277,6 +374,10 @@ class CurveEditor(QWidget):
         
         # Update properties UI
         self.update_properties_ui()
+        
+        # If in edit mode, refresh the display to show correct handles for selected knot
+        if hasattr(self.parent, 'image_view') and self.parent.image_view.mode == "edit_curve":
+            self.parent.image_view.start_editing_curve(self.curve)
     
     def on_add_knot(self):
         """Handle add knot button"""
@@ -395,25 +496,98 @@ class CurveEditor(QWidget):
         
         # Enable/disable tangent controls
         has_manual_tangent = state == Qt.Checked
-        self.tangent_angle.setEnabled(has_manual_tangent)
-        self.tangent_magnitude.setEnabled(has_manual_tangent)
+        self.independent_handles.setEnabled(has_manual_tangent)
+        self.tangent_angle_out.setEnabled(has_manual_tangent)
+        self.tangent_magnitude_out.setEnabled(has_manual_tangent)
+        self.tangent_magnitude_in.setEnabled(has_manual_tangent)
+        
+        knot = self.curve.knots[current_row]
         
         # Update knot tangent
         if has_manual_tangent:
             # Convert from degrees to radians
-            angle_rad = np.radians(self.tangent_angle.value())
-            magnitude = self.tangent_magnitude.value()
-            self.curve.knots[current_row].set_tangent(angle_rad, magnitude)
+            angle_rad = np.radians(self.tangent_angle_out.value())
+            knot.set_tangent(angle_rad, self.tangent_magnitude_out.value(), self.tangent_magnitude_in.value())
+            
+            # Update UI based on independent handles state
+            if self.independent_handles.isChecked():
+                self.tangent_angle_in_label.setVisible(True)
+                self.tangent_angle_in.setVisible(True)
+                self.tangent_angle_in_deg_label.setVisible(True)
+                self.tangent_angle_in.setEnabled(True)
+            else:
+                self.tangent_angle_in_label.setVisible(False)
+                self.tangent_angle_in.setVisible(False)
+                self.tangent_angle_in_deg_label.setVisible(False)
         else:
             # Use auto tangent
-            self.curve.knots[current_row].tangent_angle = None
+            knot.tangent_angle = None
+            knot.tangent_angle_in = None
+            knot.independent_handles = False
+            self.tangent_angle_in_label.setVisible(False)
+            self.tangent_angle_in.setVisible(False)
+            self.tangent_angle_in_deg_label.setVisible(False)
+        
+        # Refresh the curve display - this will recreate handles with correct visibility
+        if hasattr(self.parent, 'image_view') and self.parent.image_view.mode == "edit_curve":
+            self.parent.image_view.start_editing_curve(self.curve)
         
         # Update curve preview
         self.update_curve_preview()
     
-    def on_tangent_angle_changed(self, value):
+    def on_independent_handles_changed(self, state):
         """
-        Handle tangent angle changed
+        Handle independent handles checkbox changed
+        
+        Args:
+            state: Checkbox state
+        """
+        if self.curve is None:
+            return
+        
+        current_row = self.knot_list.currentRow()
+        if current_row < 0 or current_row >= len(self.curve.knots):
+            return
+        
+        knot = self.curve.knots[current_row]
+        knot.independent_handles = state == Qt.Checked
+        
+        if state == Qt.Checked:
+            # Show in angle controls
+            self.tangent_angle_in_label.setVisible(True)
+            self.tangent_angle_in.setVisible(True)
+            self.tangent_angle_in_deg_label.setVisible(True)
+            self.tangent_angle_in.setEnabled(True)
+            
+            # Initialize in angle if needed
+            if knot.tangent_angle_in is None:
+                # Set in handle to opposite of out handle
+                knot.tangent_angle_in = knot.tangent_angle + np.pi
+                # Normalize to [-π, π]
+                if knot.tangent_angle_in > np.pi:
+                    knot.tangent_angle_in -= 2 * np.pi
+                angle_in_deg = np.degrees(knot.tangent_angle_in)
+                self.tangent_angle_in.setValue(angle_in_deg)
+        else:
+            # Hide in angle controls
+            self.tangent_angle_in_label.setVisible(False)
+            self.tangent_angle_in.setVisible(False)
+            self.tangent_angle_in_deg_label.setVisible(False)
+            knot.tangent_angle_in = None
+        
+        # Update handles
+        knot._update_handles()
+        
+        # Refresh the curve display - this will recreate handles with correct visibility
+        if hasattr(self.parent, 'image_view') and self.parent.image_view.mode == "edit_curve":
+            self.parent.image_view.start_editing_curve(self.curve)
+        
+        # Update curve preview
+        self.update_curve_preview()
+    
+    def on_tangent_angle_out_changed(self, value):
+        """
+        Handle tangent angle (out) changed
         
         Args:
             value: New angle value in degrees
@@ -429,14 +603,49 @@ class CurveEditor(QWidget):
         angle_rad = np.radians(value)
         
         # Update knot tangent
-        self.curve.knots[current_row].set_tangent(angle_rad)
+        knot = self.curve.knots[current_row]
+        knot.tangent_angle = angle_rad
+        knot._update_handles()
+        
+        # Refresh the curve display if in edit mode
+        if hasattr(self.parent, 'image_view') and self.parent.image_view.mode == "edit_curve":
+            self.parent.image_view.start_editing_curve(self.curve)
         
         # Update curve preview
         self.update_curve_preview()
     
-    def on_tangent_magnitude_changed(self, value):
+    def on_tangent_angle_in_changed(self, value):
         """
-        Handle tangent magnitude changed
+        Handle tangent angle (in) changed
+        
+        Args:
+            value: New angle value in degrees
+        """
+        if self.curve is None or not self.manual_tangent.isChecked() or not self.independent_handles.isChecked():
+            return
+        
+        current_row = self.knot_list.currentRow()
+        if current_row < 0 or current_row >= len(self.curve.knots):
+            return
+        
+        # Convert from degrees to radians
+        angle_rad = np.radians(value)
+        
+        # Update knot tangent
+        knot = self.curve.knots[current_row]
+        knot.tangent_angle_in = angle_rad
+        knot._update_handles()
+        
+        # Refresh the curve display if in edit mode
+        if hasattr(self.parent, 'image_view') and self.parent.image_view.mode == "edit_curve":
+            self.parent.image_view.start_editing_curve(self.curve)
+        
+        # Update curve preview
+        self.update_curve_preview()
+    
+    def on_tangent_magnitude_out_changed(self, value):
+        """
+        Handle tangent magnitude (out) changed
         
         Args:
             value: New magnitude value
@@ -449,8 +658,35 @@ class CurveEditor(QWidget):
             return
         
         # Update knot tangent
-        angle_rad = np.radians(self.tangent_angle.value())
-        self.curve.knots[current_row].set_tangent(angle_rad, value)
+        knot = self.curve.knots[current_row]
+        knot.tangent_magnitude_out = value
+        knot._update_handles()
+        
+        # Refresh the curve display if in edit mode
+        if hasattr(self.parent, 'image_view') and self.parent.image_view.mode == "edit_curve":
+            self.parent.image_view.start_editing_curve(self.curve)
         
         # Update curve preview
+        self.update_curve_preview()
+    
+    def on_tangent_magnitude_in_changed(self, value):
+        """
+        Handle tangent magnitude (in) changed
+        
+        Args:
+            value: New magnitude value
+        """
+        if self.curve is None or not self.manual_tangent.isChecked():
+            return
+        
+        current_row = self.knot_list.currentRow()
+        if current_row < 0 or current_row >= len(self.curve.knots):
+            return
+        
+        # Update knot tangent
+        knot = self.curve.knots[current_row]
+        knot.tangent_magnitude_in = value
+        knot._update_handles()
+        
+        # Update curve preview (even though handle might not be visible, magnitude affects curve)
         self.update_curve_preview()
