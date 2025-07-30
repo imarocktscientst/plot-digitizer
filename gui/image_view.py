@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (QGraphicsView, QGraphicsScene, QGraphicsPixmapItem,
 from PyQt5.QtGui import (QPixmap, QImage, QPen, QColor, QBrush, QPainterPath,
                         QCursor, QPolygonF, QPainter)
 from PyQt5.QtCore import Qt, QPointF, QRectF, pyqtSignal
+from utils.nurbs import NurbsKnot
 
 class TangentHandle(QGraphicsEllipseItem):
     """A draggable tangent handle"""
@@ -382,7 +383,6 @@ class ImageView(QGraphicsView):
             
             # Not clicking on an existing point, add a new one
             if self.current_curve:
-                from utils.nurbs import NurbsKnot
                 knot = NurbsKnot(x, y)
                 self.current_curve.add_knot(knot)
                 

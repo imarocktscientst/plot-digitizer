@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 """
 Data sampling module for Plot Digitizer
+Updated to work with Hermite interpolation NURBS
 """
 
 import numpy as np
+import pandas as pd
 from utils.axis import Axis, AxisType
 
 def uniform_sampling(curve, x_axis, y_axis, num_points=100):
@@ -20,9 +22,16 @@ def uniform_sampling(curve, x_axis, y_axis, num_points=100):
     Returns:
         Pandas DataFrame with x and y columns containing the sampled data
     """
-    import pandas as pd
+    # Check if curve has enough knots
+    if len(curve.knots) < 2:
+        return pd.DataFrame(columns=['x', 'y'])
     
-    if curve.bspline is None or len(curve.knots) < 2:
+    # Make sure curve is up to date
+    if curve._update_needed:
+        curve.update_curve()
+    
+    # Check if curve has valid segments
+    if not curve._hermite_segments:
         return pd.DataFrame(columns=['x', 'y'])
     
     # Get the pixel coordinates of all knots
@@ -47,7 +56,7 @@ def uniform_sampling(curve, x_axis, y_axis, num_points=100):
     # For each x pixel, find the corresponding y pixel on the curve
     result_data = []
     
-    for x_px in x_pixels:
+    for x_val, x_px in zip(x_values, x_pixels):
         # Find the t parameter where the curve has this x coordinate
         # This is a simple approach: sample the curve densely and find closest point
         t_values = np.linspace(0, 1, 1000)
@@ -62,7 +71,6 @@ def uniform_sampling(curve, x_axis, y_axis, num_points=100):
         closest_point = curve_points[closest_idx]
         
         # Convert pixel coordinates to axis values
-        x_val = x_axis.pixel_to_value(closest_point[0])
         y_val = y_axis.pixel_to_value(closest_point[1])
         
         result_data.append({'x': x_val, 'y': y_val})
@@ -84,9 +92,16 @@ def adaptive_sampling(curve, x_axis, y_axis, max_error=0.5, min_points=10, max_p
     Returns:
         Pandas DataFrame with x and y columns containing the sampled data
     """
-    import pandas as pd
+    # Check if curve has enough knots
+    if len(curve.knots) < 2:
+        return pd.DataFrame(columns=['x', 'y'])
     
-    if curve.bspline is None or len(curve.knots) < 2:
+    # Make sure curve is up to date
+    if curve._update_needed:
+        curve.update_curve()
+    
+    # Check if curve has valid segments
+    if not curve._hermite_segments:
         return pd.DataFrame(columns=['x', 'y'])
     
     # Get adaptively sampled points in pixel coordinates

@@ -37,7 +37,23 @@ class NurbsKnot:
         self.out_handle_x = None
         self.out_handle_y = None
         
+        # Ensure compatibility property works by defining the underlying attribute
+        # (This is handled by the property, but let's be explicit)
+        self._tangent_magnitude = 50.0  # Internal storage for compatibility
+        
         # Update handle positions
+        self._update_handles()
+    
+    @property
+    def tangent_magnitude(self):
+        """Compatibility property for code expecting single magnitude"""
+        return (self.tangent_magnitude_in + self.tangent_magnitude_out) / 2
+    
+    @tangent_magnitude.setter
+    def tangent_magnitude(self, value):
+        """Compatibility setter - sets both magnitudes to same value"""
+        self.tangent_magnitude_in = value
+        self.tangent_magnitude_out = value
         self._update_handles()
     
     def set_position(self, x, y):
@@ -67,13 +83,23 @@ class NurbsKnot:
         Args:
             angle: Tangent angle in radians (for out handle)
             magnitude_out: Out handle magnitude (if None, keep current value)
+                          Can also be a single magnitude for backwards compatibility
             magnitude_in: In handle magnitude (if None, keep current value)
         """
         self.tangent_angle = angle
-        if magnitude_out is not None:
+        
+        # Handle backwards compatibility - if only magnitude_out is provided
+        # and magnitude_in is None, treat magnitude_out as a single magnitude for both
+        if magnitude_out is not None and magnitude_in is None:
+            # This might be old code passing a single magnitude
             self.tangent_magnitude_out = max(1.0, magnitude_out)
-        if magnitude_in is not None:
-            self.tangent_magnitude_in = max(1.0, magnitude_in)
+            self.tangent_magnitude_in = max(1.0, magnitude_out)
+        else:
+            # New style with separate magnitudes
+            if magnitude_out is not None:
+                self.tangent_magnitude_out = max(1.0, magnitude_out)
+            if magnitude_in is not None:
+                self.tangent_magnitude_in = max(1.0, magnitude_in)
         
         # If not in independent mode, clear the separate in angle
         if not self.independent_handles:
@@ -233,8 +259,39 @@ class NurbsCurve:
         self._hermite_segments = []
         self._update_needed = True
     
+    @property
+    def bspline(self):
+        """Compatibility property for code expecting bspline attribute"""
+        # Return non-None if we have a valid curve
+        if len(self.knots) >= 2 and self._hermite_segments:
+            return True  # Just indicate we have a valid curve
+        return None
+    
+    @property
+    def bspline(self):
+        """Compatibility property for code expecting bspline attribute"""
+        # Return non-None if we have a valid curve
+        if len(self.knots) >= 2 and self._hermite_segments:
+            return True  # Just indicate we have a valid curve
+        return None
+    
     def add_knot(self, knot):
         """Add a knot to the curve"""
+        # Ensure knot has the new attributes if it's an old-style knot
+        if not hasattr(knot, 'tangent_magnitude_in'):
+            if hasattr(knot, 'tangent_magnitude'):
+                knot.tangent_magnitude_in = knot.tangent_magnitude
+                knot.tangent_magnitude_out = knot.tangent_magnitude
+            else:
+                knot.tangent_magnitude_in = 50.0
+                knot.tangent_magnitude_out = 50.0
+        
+        if not hasattr(knot, 'independent_handles'):
+            knot.independent_handles = False
+        
+        if not hasattr(knot, 'tangent_angle_in'):
+            knot.tangent_angle_in = None
+        
         # Insert knot at appropriate position to maintain x-order
         if not self.knots or knot.x >= self.knots[-1].x:
             self.knots.append(knot)

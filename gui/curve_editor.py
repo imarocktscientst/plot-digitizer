@@ -120,7 +120,7 @@ class CurveEditor(QWidget):
         self.tangent_angle_out = QDoubleSpinBox()
         self.tangent_angle_out.setRange(-360, 360)
         self.tangent_angle_out.setDecimals(1)
-        self.tangent_angle_out.setSingleStep(1)
+        self.tangent_angle_out.setSingleStep(15)
         self.tangent_angle_out.setValue(0)
         self.tangent_angle_out.setEnabled(False)
         self.tangent_angle_out.valueChanged.connect(self.on_tangent_angle_out_changed)
@@ -137,7 +137,7 @@ class CurveEditor(QWidget):
         self.tangent_angle_in = QDoubleSpinBox()
         self.tangent_angle_in.setRange(-360, 360)
         self.tangent_angle_in.setDecimals(1)
-        self.tangent_angle_in.setSingleStep(1)
+        self.tangent_angle_in.setSingleStep(15)
         self.tangent_angle_in.setValue(0)
         self.tangent_angle_in.setEnabled(False)
         self.tangent_angle_in.valueChanged.connect(self.on_tangent_angle_in_changed)
@@ -159,7 +159,7 @@ class CurveEditor(QWidget):
         out_length_label.setStyleSheet("QLabel { color: rgb(100, 200, 255); }")  # Blue to match handle color
         
         self.tangent_magnitude_out = QDoubleSpinBox()
-        self.tangent_magnitude_out.setRange(0.1, 1000)
+        self.tangent_magnitude_out.setRange(0.1, 200)
         self.tangent_magnitude_out.setDecimals(1)
         self.tangent_magnitude_out.setSingleStep(5)
         self.tangent_magnitude_out.setValue(50.0)
@@ -176,7 +176,7 @@ class CurveEditor(QWidget):
         in_length_label.setStyleSheet("QLabel { color: rgb(255, 100, 100); }")  # Red to match handle color
         
         self.tangent_magnitude_in = QDoubleSpinBox()
-        self.tangent_magnitude_in.setRange(0.1, 1000)
+        self.tangent_magnitude_in.setRange(0.1, 200)
         self.tangent_magnitude_in.setDecimals(1)
         self.tangent_magnitude_in.setSingleStep(5)
         self.tangent_magnitude_in.setValue(50.0)
